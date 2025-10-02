@@ -1,9 +1,10 @@
-Flask
+﻿Flask
 Flask-SocketIO
 eventlet
 gunicorn
 pandas
 scikit-learn
 opencv-python
-mediapipe==0.10.1
+mediapipe
 numpy<2
+
