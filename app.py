@@ -1,22 +1,31 @@
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 import numpy as np
-import pickle
 import mediapipe as mp
 import cv2
 import base64
 import re
-import eventlet # Required for SocketIO
+import eventlet  # Required for SocketIO
+import os
+
+# For model download
+import joblib
+from huggingface_hub import hf_hub_download
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key!'
 socketio = SocketIO(app)
 
-# --- LOAD YOUR MODEL AND SETUP MEDIAPIPE ---
-model_filename = 'mudra_model_augmented.pkl'
-with open(model_filename, 'rb') as f:
-    model = pickle.load(f)
+# --- LOAD YOUR MODEL FROM HUGGING FACE HUB ---
+# Replace "username/mudra-model" with your HF repo name
+model_path = hf_hub_download(
+    repo_id="anup-21/mudra-model",   # e.g. "ak0021max/mudra-model"
+    filename="mudra_model_augmented.pkl"
+)
 
+model = joblib.load(model_path)
+
+# --- SETUP MEDIAPIPE ---
 mp_hands = mp.solutions.hands
 # Use two separate Hands instances for different configurations
 hands_live = mp_hands.Hands(static_image_mode=False, max_num_hands=2, min_detection_confidence=0.7)
@@ -38,15 +47,19 @@ def predict():
 
     results = hands_static.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     
-    if not results.multi_hand_landmarks: return jsonify({'error': 'No hands detected.'})
+    if not results.multi_hand_landmarks:
+        return jsonify({'error': 'No hands detected.'})
     
     left_hand_landmarks, right_hand_landmarks = [0] * 63, [0] * 63
     for idx, hand_landmarks in enumerate(results.multi_hand_landmarks):
         handedness = results.multi_handedness[idx].classification[0].label
         temp_landmarks = []
-        for lm in hand_landmarks.landmark: temp_landmarks.extend([lm.x, lm.y, lm.z])
-        if handedness == 'Left': left_hand_landmarks = temp_landmarks
-        elif handedness == 'Right': right_hand_landmarks = temp_landmarks
+        for lm in hand_landmarks.landmark:
+            temp_landmarks.extend([lm.x, lm.y, lm.z])
+        if handedness == 'Left':
+            left_hand_landmarks = temp_landmarks
+        elif handedness == 'Right':
+            right_hand_landmarks = temp_landmarks
             
     try:
         landmarks = np.array(left_hand_landmarks + right_hand_landmarks).reshape(1, -1)
@@ -70,14 +83,18 @@ def handle_live_frame(data_image):
         for idx, hand_landmarks in enumerate(results.multi_hand_landmarks):
             handedness = results.multi_handedness[idx].classification[0].label
             temp_landmarks = []
-            for lm in hand_landmarks.landmark: temp_landmarks.extend([lm.x, lm.y, lm.z])
-            if handedness == 'Left': left_hand_landmarks = temp_landmarks
-            elif handedness == 'Right': right_hand_landmarks = temp_landmarks
+            for lm in hand_landmarks.landmark:
+                temp_landmarks.extend([lm.x, lm.y, lm.z])
+            if handedness == 'Left':
+                left_hand_landmarks = temp_landmarks
+            elif handedness == 'Right':
+                right_hand_landmarks = temp_landmarks
         try:
             landmarks = np.array(left_hand_landmarks + right_hand_landmarks).reshape(1, -1)
             prediction = model.predict(landmarks)
             gesture_name = prediction[0]
-        except: pass
+        except:
+            pass
     
     socketio.emit('live_prediction', {'mudra': gesture_name})
 
