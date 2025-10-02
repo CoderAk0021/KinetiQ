@@ -81,5 +81,5 @@ def handle_live_frame(data_image):
     
     socketio.emit('live_prediction', {'mudra': gesture_name})
 
-if __name__ == '__main__':
-    socketio.run(app, debug=True)
+if __name__ == "__main__":
+    socketio.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
