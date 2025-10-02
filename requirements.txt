@@ -7,3 +7,4 @@ scikit-learn
 opencv-python
 mediapipe==0.10.1
 numpy<2
+huggingface_hub
