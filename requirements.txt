@@ -5,6 +5,7 @@ gunicorn
 pandas
 scikit-learn
 opencv-python
-mediapipe==0.10.1
+mediapipe-silicon
 numpy<2
 huggingface_hub
+joblib
