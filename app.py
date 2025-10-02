@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from flask_socketio import SocketIO
 import numpy as np
-import mediapipe as mp
+import mediapipe_silicon as mp
 import cv2
 import base64
 import re
